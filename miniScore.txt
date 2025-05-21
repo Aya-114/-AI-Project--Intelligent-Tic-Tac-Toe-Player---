@@ -1,0 +1,3 @@
+X Wins: 0
+O Wins: 3
+Ties: 5

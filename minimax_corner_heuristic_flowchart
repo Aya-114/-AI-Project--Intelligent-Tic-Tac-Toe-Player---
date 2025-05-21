@@ -1,0 +1,30 @@
+// Minimax with Corner Heuristic Flowchart
+digraph {
+	A [label=Start]
+	B [label="Initialize Board"]
+	C [label="Choose Starting Player"]
+	D [label="Player Move?"]
+	E [label="Evaluate Board"]
+	F [label="Check Win/Tie after Move"]
+	G [label="AI Move with Heuristic"]
+	H [label="Check Win/Tie after AI Move"]
+	I [label="Show Win/Tie Message + Reset"]
+	J [label="Next Turn (Switch Player)"]
+	K [label="Minimax Algorithm with Heuristic"]
+	L [label="End / Game Over"]
+	A -> B
+	B -> C
+	C -> D [label="Player Starts"]
+	C -> G [label="AI Starts"]
+	D -> E [label="Player Makes Move"]
+	E -> F [label=Evaluate]
+	F -> I [label="Win or Tie"]
+	F -> G [label="No Win/Tie → AI Move"]
+	G -> H [label="After AI Move"]
+	H -> I [label="Win or Tie"]
+	H -> J [label="No Win/Tie → Next Turn"]
+	J -> D [label="Switch to Player Move"]
+	I -> L [label="Reset or End"]
+	G -> K [label="Call Minimax"]
+	K -> G [label="Return Best Move"]
+}
