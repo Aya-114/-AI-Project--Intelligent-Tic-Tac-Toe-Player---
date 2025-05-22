@@ -3,13 +3,24 @@ from tkinter import messagebox
 import time
 import matplotlib.pyplot as plt
 import math
+import sys
+from styled_wrapper import create_styled_game
 
 class TicTacToe:
     def __init__(self, master):
+              # Add score tracking variables
+        self.ai_score = 0
+        self.player_score = 0
+
+# Add score display label (after creating the game board buttons)
+        self.score_label = tk.Label(master, text=f"AI: {self.ai_score}  You: {self.player_score}", font=('Arial', 12))
+        self.score_label.grid(row=3, column=0, columnspan=3, pady=5)
+
         self.buttons = [[0 for _ in range(3)] for _ in range(3)]
         self.board = [['-' for _ in range(3)] for _ in range(3)]
-        self.current_player = None  # Initialize to None, will be set after asking the user
-        self.execution_times = []  # Added
+        self.current_player = self.choose_starting_player()
+        self.execution_times = []
+        self.space_complexity = []
 
         for i in range(3):
             for j in range(3):
@@ -17,21 +28,19 @@ class TicTacToe:
                                                command=lambda row=i, col=j: self.on_click(row, col))
                 self.buttons[i][j].grid(row=i, column=j)
 
-        self.calculate_button = tk.Button(master, text="Calculate Time Complexity", command=self.calculate_and_show_plot)
-        self.calculate_button.grid(row=3, column=0, columnspan=3)
+        # Create calculate button but don't add it to layout - styled wrapper will handle this
+        self.calculate_button = tk.Button(master, text="Calculate Time Complexity and Space Complexity", command=self.calculate_and_show_plot)
+        # Removed: self.calculate_button.grid(row=3, column=0, columnspan=3)
 
-        # After initializing the GUI, ask the user to choose the starting player
-        self.choose_starting_player()
+        if self.current_player == 'X':
+            self.ai_move_with_corner()
 
     def choose_starting_player(self):
-        answer = messagebox.askquestion("Tic Tac Toe", "Do you want to play first?")
-        if answer == 'yes':
-            self.current_player = 'O'
-        else:
-            self.current_player = 'X'
-            self.ai_move_with_corners()
+        result = messagebox.askyesno("Tic Tac Toe", "Do you want to play first?")
+        return 'O' if result else 'X'
 
     def evaluate(self, board):
+        # Check for win conditions
         for row in board:
             if row.count('X') == 3:
                 return 10
@@ -57,32 +66,65 @@ class TicTacToe:
             elif board[0][2] == 'O':
                 return -10
 
+        # Corner control heuristic with higher weight
         corner_control = 0
         corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
-        for corner in corners:
-            if board[corner[0]][corner[1]] == 'X':
-                corner_control += 1
-            elif board[corner[0]][corner[1]] == 'O':
+        for i, j in corners:
+            if board[i][j] == 'X':
+                corner_control += 2  # Increased weight for AI corners
+            if board[i][j] == 'O':
                 corner_control -= 1
-
+                
+        # Block potential winning moves
+        for i in range(3):
+            for j in range(3):
+                if board[i][j] == '-':
+                    # Check if player could win here
+                    board[i][j] = 'O'
+                    if self.check_win(board, 'O'):
+                        corner_control -= 5  # High penalty for allowing win
+                    board[i][j] = '-'
+                    
         return corner_control
 
-    def minimax_with_corners(self, board, depth, is_maximizing):
-        score = self.evaluate(board)
-        if score == 10:
-            return score - depth
-        if score == -10:
-            return score + depth
-        if not any('-' in row for row in board):
-            return 0
+    def check_win(self, board, player):
+        # Check rows
+        for row in board:
+            if row.count(player) == 3:
+                return True
+                
+        # Check columns
+        for col in range(3):
+            if board[0][col] == board[1][col] == board[2][col] == player:
+                return True
+                
+        # Check diagonals
+        if board[0][0] == board[1][1] == board[2][2] == player:
+            return True
+        if board[0][2] == board[1][1] == board[2][0] == player:
+            return True
+            
+        return False
 
+    def minimax_with_corner(self, board, depth, is_maximizing):
+        """Enhanced minimax to ensure AI doesn't lose"""
+        score = self.evaluate(board)
+        
+        # Terminal states
+        if score == 10:  # AI wins
+            return score - depth
+        if score == -10:  # Player wins
+            return score + depth
+        if not any('-' in row for row in board):  # Draw
+            return 0
+            
         if is_maximizing:
             best = -math.inf
             for i in range(3):
                 for j in range(3):
                     if board[i][j] == '-':
                         board[i][j] = 'X'
-                        best = max(best, self.minimax_with_corners(board, depth + 1, not is_maximizing))
+                        best = max(best, self.minimax_with_corner(board, depth + 1, False))
                         board[i][j] = '-'
             return best
         else:
@@ -91,35 +133,80 @@ class TicTacToe:
                 for j in range(3):
                     if board[i][j] == '-':
                         board[i][j] = 'O'
-                        best = min(best, self.minimax_with_corners(board, depth + 1, not is_maximizing))
+                        best = min(best, self.minimax_with_corner(board, depth + 1, True))
                         board[i][j] = '-'
             return best
 
-    def ai_move_with_corners(self):
-        # Measure execution time for the ai_move_with_corners function - Modified
+    def ai_move_with_corner(self):
         start_time = time.time()
-
-        best_val = -math.inf
-        best_move = (-1, -1)
-
+        
+        # First priority: Take a corner if available
+        corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
+        corner_available = False
+        
+        # First check if AI can win in one move
         for i in range(3):
             for j in range(3):
                 if self.board[i][j] == '-':
                     self.board[i][j] = 'X'
-                    move_val = self.minimax_with_corners(self.board, 0, False)+self.evaluate(self.board) 
+                    if self.check_win(self.board, 'X'):
+                        row, col = i, j
+                        self.board[i][j] = '-'
+                        corner_available = True
+                        break
                     self.board[i][j] = '-'
+            if corner_available:
+                break
+                
+        # If no winning move, check if need to block player
+        if not corner_available:
+            for i in range(3):
+                for j in range(3):
+                    if self.board[i][j] == '-':
+                        self.board[i][j] = 'O'
+                        if self.check_win(self.board, 'O'):
+                            row, col = i, j
+                            self.board[i][j] = '-'
+                            corner_available = True
+                            break
+                        self.board[i][j] = '-'
+                if corner_available:
+                    break
+        
+        # If no immediate win or block needed, try to take a corner
+        if not corner_available:
+            for i, j in corners:
+                if self.board[i][j] == '-':
+                    corner_available = True
+                    row, col = i, j
+                    break
+        
+        # If no corner is available, use minimax to find best move
+        if not corner_available:
+            best_val = -math.inf
+            best_move = (-1, -1)
 
-                    if move_val > best_val:
-                        best_move = (i, j)
-                        best_val = move_val
+            for i in range(3):
+                for j in range(3):
+                    if self.board[i][j] == '-':
+                        self.board[i][j] = 'X'
+                        move_val = self.minimax_with_corner(self.board, 0, False) + self.evaluate(self.board)
+                        self.board[i][j] = '-'
 
-        row, col = best_move
+                        if move_val > best_val:
+                            best_move = (i, j)
+                            best_val = move_val
+
+            row, col = best_move
+
         self.buttons[row][col].config(text='X', state=tk.DISABLED)
         self.board[row][col] = 'X'
 
         result = self.evaluate(self.board)
         if result == 10:
             messagebox.showinfo("Tic Tac Toe", "AI wins!")
+            self.ai_score += 1
+            self.update_score_display()
             self.reset_board()
         elif not any('-' in row for row in self.board):
             messagebox.showinfo("Tic Tac Toe", "It's a tie!")
@@ -127,26 +214,35 @@ class TicTacToe:
         else:
             self.current_player = 'O'
 
-        # Measure execution time for the ai_move_with_corners function - Modified
         end_time = time.time()
         execution_time = end_time - start_time
-        self.execution_times.append(execution_time)  # Added
-        print(f"AI Move Execution Time: {execution_time} seconds")  # Added
+        self.execution_times.append(execution_time)
+
+        space_used = sys.getsizeof(self.board)
+        self.space_complexity.append(space_used)
+
+        print(f"AI Move Execution Time: {execution_time} seconds, Space Complexity: {space_used} bytes")
 
     def on_click(self, row, col):
-        if self.board[row][col] == '-':
+        if self.board[row][col] == '-' and self.current_player == 'O':
             self.buttons[row][col].config(text='O', state=tk.DISABLED)
             self.board[row][col] = 'O'
 
             result = self.evaluate(self.board)
             if result == -10:
                 messagebox.showinfo("Tic Tac Toe", "You win!")
+                self.player_score += 1
+                self.update_score_display()
+
                 self.reset_board()
             elif any('-' in row for row in self.board):
-                self.ai_move_with_corners()
+                self.ai_move_with_corner()
             else:
                 messagebox.showinfo("Tic Tac Toe", "It's a tie!")
                 self.reset_board()
+    def update_score_display(self):
+      self.score_label.config(text=f"AI: {self.ai_score}  You: {self.player_score}")
+
 
     def reset_board(self):
         play_again = messagebox.askyesno("Tic Tac Toe", "Do you want to play again?")
@@ -156,52 +252,28 @@ class TicTacToe:
                     self.board[i][j] = '-'
                     self.buttons[i][j].config(text='', state=tk.NORMAL)
 
-            self.current_player = None
-            self.choose_starting_player()
-
-    def calculate_time_complexity(self, board_size, num_simulations):  # Modified
-        input_sizes = list(range(3, board_size + 1))
-        execution_times = []
-
-        for size in input_sizes:
-            self.board = [['-' for _ in range(size)] for _ in range(size)]
-
-            for _ in range(num_simulations):  # Added
-                # Measure execution time for the ai_move_with_corners function - Modified
-                start_time = time.time()
-                self.ai_move_with_corners()
-                end_time = time.time()
-                execution_time = end_time - start_time
-                execution_times.append(execution_time)
-                print(f"Board Size: {size}x{size}, Execution Time: {execution_time} seconds")
-
-        # Plot the results - Modified
-        plt.plot(range(1, num_simulations + 1), execution_times, marker='o')  # Modified
-        plt.xlabel('AI Moves')  # Modified
-        plt.ylabel('Execution Time (s)')  # Modified
-        plt.title('Time Complexity Analysis (Corner Control Heuristic)')  # Modified
-        plt.show()
-
-        # Calculate and print the average time complexity - Added
-        average_time_complexity = sum(execution_times) / len(execution_times)
-        print(f"Average Time Complexity: {average_time_complexity} seconds")  # Added
+            self.current_player = self.choose_starting_player()
+            if self.current_player == 'X':
+                self.ai_move_with_corner()
 
     def calculate_and_show_plot(self):
-        # Plot the results
         moves = list(range(1, len(self.execution_times) + 1))
-        plt.plot(moves, self.execution_times, marker='o')
+        plt.plot(moves, self.execution_times, marker='o', label='Time Complexity')
+        plt.plot(moves, self.space_complexity, marker='o', label='Space Complexity')
         plt.xlabel('AI Moves')
-        plt.ylabel('Execution Time (s)')
-        plt.title('Time Complexity Analysis for Each AI Move')
+        plt.ylabel('Complexity')
+        plt.title('Time and Space Complexity Analysis for Each AI Move')
+        plt.legend()
         plt.show()
 
-        # Calculate and print the average time complexity
         average_time_complexity = sum(self.execution_times) / len(self.execution_times)
         print(f"Average Time Complexity: {average_time_complexity} seconds")
 
+        average_space_complexity = sum(self.space_complexity) / len(self.space_complexity)
+        print(f"Average Space Complexity: {average_space_complexity} bytes")
+
 if __name__ == "__main__":
     root = tk.Tk()
-    game = TicTacToe(root)
+    # Use the styled wrapper to enhance visuals while preserving original logic
+    styled_game = create_styled_game(TicTacToe)(root)
     root.mainloop()
-
-

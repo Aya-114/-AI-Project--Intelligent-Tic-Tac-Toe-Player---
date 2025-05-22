@@ -4,9 +4,17 @@ import time
 import matplotlib.pyplot as plt
 import math
 import sys
+from styled_wrapper import create_styled_game
 
 class TicTacToe:
     def __init__(self, master):
+       
+        self.ai_score = 0
+        self.player_score = 0
+
+        self.score_label = tk.Label(master, text=f"AI: {self.ai_score}  You: {self.player_score}", font=('Arial', 12))
+        self.score_label.grid(row=3, column=0, columnspan=3, pady=5)
+
         self.buttons = [[0 for _ in range(3)] for _ in range(3)]
         self.board = [['-' for _ in range(3)] for _ in range(3)]
         self.current_player = self.choose_starting_player()
@@ -19,15 +27,16 @@ class TicTacToe:
                                                command=lambda row=i, col=j: self.on_click(row, col))
                 self.buttons[i][j].grid(row=i, column=j)
 
-        self.calculate_button = tk.Button(master, text="Calculate Time Complexity and Space Complexity", command=self.calculate_and_show_plot)
-        self.calculate_button.grid(row=3, column=0, columnspan=3)
-
         if self.current_player == 'X':
             self.ai_move_with_center()
 
     def choose_starting_player(self):
         result = messagebox.askyesno("Tic Tac Toe", "Do you want to play first?")
         return 'O' if result else 'X'
+# Add method to update score display
+    def update_score_display(self):
+        self.score_label.config(text=f"AI: {self.ai_score}  You: {self.player_score}")
+
 
     def evaluate(self, board):
         for row in board:
@@ -127,6 +136,9 @@ class TicTacToe:
         result = self.evaluate(self.board)
         if result == 10:
             messagebox.showinfo("Tic Tac Toe", "AI wins!")
+            self.ai_score += 1
+            self.update_score_display()
+
             self.reset_board()
         elif not any('-' in row for row in self.board):
             messagebox.showinfo("Tic Tac Toe", "It's a tie!")
@@ -151,11 +163,15 @@ class TicTacToe:
             result = self.evaluate(self.board)
             if result == -10:
                 messagebox.showinfo("Tic Tac Toe", "You win!")
+                self.player_score += 1
+                self.update_score_display()
+
                 self.reset_board()
             elif any('-' in row for row in self.board):
                 self.ai_move_with_center()
             else:
                 messagebox.showinfo("Tic Tac Toe", "It's a tie!")
+                
                 self.reset_board()
 
     def reset_board(self):
@@ -188,5 +204,6 @@ class TicTacToe:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    game = TicTacToe(root)
+    # Use the styled wrapper to enhance visuals while preserving original logic
+    styled_game = create_styled_game(TicTacToe)(root)
     root.mainloop()

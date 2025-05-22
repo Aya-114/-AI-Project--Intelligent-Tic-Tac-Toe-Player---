@@ -2,15 +2,23 @@ import tkinter as tk
 from tkinter import messagebox
 import time
 import matplotlib.pyplot as plt
+import math
 import sys
+from styled_wrapper import create_styled_game
 
 class TicTacToe:
     def __init__(self, master):
+        self.ai_score = 0
+        self.player_score = 0
+
+        self.score_label = tk.Label(master, text=f"AI: {self.ai_score}  You: {self.player_score}", font=('Arial', 12))
+        self.score_label.grid(row=3, column=0, columnspan=3, pady=5)
+
         self.buttons = [[0 for _ in range(3)] for _ in range(3)]
         self.board = [['-' for _ in range(3)] for _ in range(3)]
         self.current_player = self.choose_starting_player()
-        self.execution_times = []  # تخزين أوقات التنفيذ لكل حركة AI
-        self.space_complexity = []  # تخزين استهلاك اAIلذاكرة لكل حركة 
+        self.execution_times = []  
+        self.space_complexity = []  
 
         for i in range(3):
             for j in range(3):
@@ -18,8 +26,7 @@ class TicTacToe:
                                                command=lambda row=i, col=j: self.on_click(row, col))
                 self.buttons[i][j].grid(row=i, column=j)
 
-        self.calculate_button = tk.Button(master, text="Calculate Time Complexity and Space Complexity", command=self.calculate_and_show_plot)
-        self.calculate_button.grid(row=3, column=0, columnspan=3)
+      
 
         if self.current_player == 'X':
             self.ai_move_with_center()
@@ -27,6 +34,10 @@ class TicTacToe:
     def choose_starting_player(self):
         result = messagebox.askyesno("Tic Tac Toe", "Do you want to play first?")
         return 'O' if result else 'X'
+
+    def update_score_display(self):
+      self.score_label.config(text=f"AI: {self.ai_score}  You: {self.player_score}")
+
 
     def evaluate(self, board):
         for row in board:
@@ -62,23 +73,57 @@ class TicTacToe:
 
         return center_control
 
+    def minimax_with_center(self, board, depth, is_maximizing):
+        score = self.evaluate(board)
+        if score == 10:
+            return score - depth
+        if score == -10:
+            return score + depth
+        if not any('-' in row for row in board):
+            return 0
+
+        if is_maximizing:
+            best = -math.inf
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] == '-':
+                        board[i][j] = 'X'
+                        best = max(best, self.minimax_with_center(board, depth + 1, not is_maximizing))
+                        board[i][j] = '-'
+            return best
+        else:
+            best = math.inf
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] == '-':
+                        board[i][j] = 'O'
+                        best = min(best, self.minimax_with_center(board, depth + 1, not is_maximizing))
+                        board[i][j] = '-'
+            return best
+
     def ai_move_with_center(self):
+        # قياس زمن التنفيذ
         start_time = time.time()
 
-        # إذا المركز فاضي خليه
+        # محاولة اخذ المركز اذا متاح
         if self.board[1][1] == '-':
             row, col = 1, 1
         else:
-            # اختار أول خانة فاضية بدون Minimax
-            move_found = False
+            best_val = -math.inf
+            best_move = (-1, -1)
+
             for i in range(3):
                 for j in range(3):
                     if self.board[i][j] == '-':
-                        row, col = i, j
-                        move_found = True
-                        break
-                if move_found:
-                    break
+                        self.board[i][j] = 'X'
+                        move_val = self.minimax_with_center(self.board, 0, False) + self.evaluate(self.board)
+                        self.board[i][j] = '-'
+
+                        if move_val > best_val:
+                            best_move = (i, j)
+                            best_val = move_val
+
+            row, col = best_move
 
         self.buttons[row][col].config(text='X', state=tk.DISABLED)
         self.board[row][col] = 'X'
@@ -93,6 +138,7 @@ class TicTacToe:
         else:
             self.current_player = 'O'
 
+        # حساب زمن التنفيذ واستهلاك الذاكرة
         end_time = time.time()
         execution_time = end_time - start_time
         self.execution_times.append(execution_time)
@@ -147,5 +193,6 @@ class TicTacToe:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    game = TicTacToe(root)
+    # Use the styled wrapper to enhance visuals while preserving original logic
+    styled_game = create_styled_game(TicTacToe)(root)
     root.mainloop()
