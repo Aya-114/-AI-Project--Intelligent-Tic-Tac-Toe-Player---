@@ -21,11 +21,11 @@ Developed by:
 - Abobakr Kamel
 
 ## 📷 Screenshots
+![image](https://github.com/user-attachments/assets/e9ca62bc-4b56-4df6-a8f6-bde65005c462)
 
-![image](https://github.com/user-attachments/assets/7eb10809-0c5b-46ad-a8c9-2e582d00f675)
-![image](https://github.com/user-attachments/assets/c5a914b7-1c1c-43c4-b3f7-31bdafc04f56)
-![image](https://github.com/user-attachments/assets/3b0207b4-ce81-4709-9e73-5fcbb5c151f2)
-![image](https://github.com/user-attachments/assets/9d8ebde7-07c8-4a32-a2a9-64d39e671fed)
+![image](https://github.com/user-attachments/assets/6c86feb9-fa93-434d-b305-da5454b140a8)
+
+![image](https://github.com/user-attachments/assets/2431a825-9dc9-4c4b-a228-b8aef8ad93f2)
 
 
 
