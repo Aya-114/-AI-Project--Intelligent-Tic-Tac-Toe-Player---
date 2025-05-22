@@ -27,6 +27,11 @@ Developed by:
 
 ![image](https://github.com/user-attachments/assets/2431a825-9dc9-4c4b-a228-b8aef8ad93f2)
 
+![image](https://github.com/user-attachments/assets/20ace1ea-7d19-453a-9d22-0f403b7d3ca1)
+
+![image](https://github.com/user-attachments/assets/167de909-ba02-436e-9740-ca7cf1f4e605)
+
+
 
 
 ## 🛠️ How to Run
